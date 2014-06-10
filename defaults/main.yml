@@ -1,0 +1,36 @@
+---
+mozsync_version:        "1.5.0"
+mozsync_user:           "mozilla"
+mozsync_user_home:      "/home/{{ mozsync_user }}"
+mozsync_webserver:      'builtin'  # or wsgi for apache or gunicorn for nginx
+                        # see https://docs.services.mozilla.com/howtos/run-sync-1.5.html
+mozsync_gunicorn_workers:   2
+mozsync_gunicorn_timeout:   60
+
+mozsync_internal_host:  '127.0.0.1'
+mozsync_public_host:    '127.0.0.1'
+mozsync_internal_port:  '5000'
+mozsync_external_port:  '{{ mozsync_internal_port }}'
+mozsync_path:           '/'
+mozsync_internal_url:   'http://{{ mozsync_internal_host ~ ":" ~ mozsync_internal_port ~ mozsync_path }}'
+mozsync_public_url:     'http://{{ mozsync_public_host ~ ":" ~ mozsync_external_port ~ mozsync_path }}'
+
+mozsync_backend:        'sqlite'
+#mozsync_mysql_user:     username
+#mozsync_mysql_pass:     password
+#mozsync_mysql_host:     localhost
+#mozsync_mysql_db:       mozsync
+
+# This is a secret key used for signing authentication tokens.
+# It should be long and randomly-generated.
+# The following command will give a suitable value on *nix systems:
+#
+#    head -c 20 /dev/urandom | sha1sum
+#
+# If not specified then the server will generate a temporary one at startup.
+# You definitely want to set this for production!
+#mozsync_secret:
+
+# Set this to "false" to disable new-user signups on the server.
+# Only request by existing accounts will be honoured.
+mozsync_allow_new_users:    false

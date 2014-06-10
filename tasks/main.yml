@@ -1,0 +1,132 @@
+---
+- name:         check prerequisites
+  assert:
+    that:
+                - mozsync_version is in MOZSYNC_SUPPORTED_VERSIONS
+                - ansible_pkg_mgr in MOZSYNC_SUPPORTED_PKGMGRS
+                - mozsync_secret is defined and mozsync_secret
+                - >
+                  mozsync_backend == 'sqlite' or
+                  (mozsync_backend == 'mysql'
+                  and mozsync_mysql_user is defined
+                  and mozsync_mysql_pass is defined
+                  and mozsync_mysql_host is defined
+                  and mozsync_mysql_db is defined)
+
+- name:         install prerequisite packages
+  action:
+    module:     '{{ ansible_pkg_mgr }}'
+    name:       '{{ item }}'
+    state:      present
+  with_items:   MOZSYNC_PACKAGES[ansible_pkg_mgr]
+
+- name:         provision user
+  user:
+    createhome:         yes
+- name:         provision user
+  user:
+    createhome:         yes
+    name:               '{{ mozsync_user }}'
+    group:              '{{ mozsync_user }}'
+    home:               '{{ mozsync_user_home }}'
+    system:             yes
+    password:           '!disabled'
+    update_password:    always
+    state:              present
+
+- name:         provision directories
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  file:
+    path:               '{{ mozsync_user_home }}/{{ item }}'
+    state:              directory
+  with_items:
+                        - tarballs
+                        - syncserver
+
+- name:         download tarball
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  get_url:
+    url:                '{{ mozsync_tarball_url }}'
+    dest:               '{{ mozsync_user_home }}/tarballs'
+    validate_certs:     yes
+  register:     mozsync_tarball_file
+
+- name:         extract tarball
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  archive:
+    copy:               no
+    creates:            '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/'
+    src:                '{{ mozsync_tarball_file.path }}'
+    dest:               '{{ mozsync_user_home }}/syncserver/'
+  notify:
+                - restart_mozsync
+  register:     mozsync_tarball_extracted
+
+- name:         get untarred folder state
+  path:         '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/'
+  register:     mozsync_untarred_folder
+
+- name:         verify untarred folder state
+  assert:
+    that:
+                - mozsync_untarred_folder.exists
+                - mozsync_untarred_folder.isfolder
+
+- name:         symlink current install
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  file:
+    src:            '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/'
+    dest:           '{{ mozsync_user_home }}/syncserver/syncserver-current/'
+    state:          link
+  notify:
+                - restart_mozsync
+
+- name:         provision syncserver.ini
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  template:
+    src:        syncserver.ini
+    dest:       '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/syncserver.ini'
+    backup:     yes
+  notify:
+                - restart_mozsync
+
+- name:         install syncserver
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  command:      make build
+                chdir='{{ mozsync_user_home }}/syncserver/syncserver-current/'
+  when:         mozsync_tarball_extracted|changed
+  register:     mozsync_install_syncserver
+  changed_when: not 'Nothing to be done' in mozsync_install_syncserver.stdout
+
+- name:         install prerequisite packages for gunicorn
+  command:      local/bin/easy_install gunicorn
+                chdir='{{ mozsync_user_home }}/syncserver/syncserver-current/'
+                creates='{{ mozsync_user_home }}/syncserver/syncserver-current/local/bin/gunicorn'
+  when:         mozsync_webserver == 'gunicorn'
+
+- name:         test syncserver
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  command:      make test
+                chdir='{{ mozsync_user_home }}/syncserver/syncserver-current/'
+  when:         not mozsync_install_syncserver|skipped
+  changed_when: false
+
+- name:         configure upstart script
+  template:
+    src:        mozilla-syncserver.conf
+    dest:       /etc/init/mozilla-syncserver.conf
+  notify:
+                - restart_mozsync
+
+- name:         enable upstart script
+  service:
+    name:       mozilla-syncserver
+    enabled:    yes
+

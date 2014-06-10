@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  author: Serge van Ginderachter
+  description: Run-Your-Own Firefox Sync Server
+  company: Ginsys BVBA - http://ginsys.eu
+  # Some suggested licenses:
+  # - BSD (default)
+  # - MIT
+  # - GPLv2
+  # - GPLv3
+  # - Apache
+  # - CC-BY
+  license: GPLv3
+  min_ansible_version: 1.6
+  platforms:
+  #- name: EL
+  #  versions:
+  #  - all
+  - name: Ubuntu
+    versions:
+    - all
+  - name: Debian
+    versions:
+    - all
+  categories:
+  - cloud
+  - web
+dependencies: []
+

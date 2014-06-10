@@ -1,0 +1,8 @@
+---
+- name:     restart_mozsync
+  service:
+    name:       mozilla-syncserver
+    pattern:    local/bin/pserve
+    state:      restarted
+
+

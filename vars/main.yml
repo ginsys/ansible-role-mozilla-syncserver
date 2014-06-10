@@ -1,0 +1,31 @@
+---
+MOZSYNC_SUPPORTED_VERSIONS:
+                        - '1.5.0'
+MOZSYNC_SUPPORTED_PKGMGRS:
+                        - 'apt'
+                        #- 'yum'  # need validation
+
+MOZSYNC_PACKAGES:
+    apt:
+                        - python-dev
+                        - python-virtualenv
+                        - python-sqlite
+                        - python-sqlalchemy
+
+    yum:                # TODO rpm packages to confirm:
+                        - python-dev
+                        - python-virtualenv
+                        - python-sqlite
+                        - python-sqlalchemy
+
+mozsync_tarball_url:    https://github.com/mozilla-services/syncserver/archive/{{ mozsync_version }}.tar.gz
+
+mozsync_use:
+    builtin:            'egg:Paste#http'
+    wsgi:               'egg:Paste#http'
+    gunicorn:           'egg:gunicorn'
+
+mozsync_sqluri:
+  sqlite:               '{{ mozsync_user_home }}/sqlite/syncserver.db'
+  mysql:                'pymysql://{{ mozsync_mysql_user }}:{{ mozsync_mysql_user }}@{{ mozsync_mysql_host }}/{{ mozsync_path }}'
+
