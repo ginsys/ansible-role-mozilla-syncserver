@@ -1,0 +1,24 @@
+---
+- name:         check prerequisites
+  assert:
+    that:
+                - mozsync_version in MOZSYNC_SUPPORTED_VERSIONS
+                - ansible_pkg_mgr in MOZSYNC_SUPPORTED_PKGMGRS
+                - ansible_distribution_release in MOZSYNC_SUPPORTED_DISTRIBUTION_RELEASE
+                - mozsync_secret is defined and mozsync_secret
+                - >
+                  mozsync_backend == 'sqlite' or
+                  (mozsync_backend == 'mysql'
+                  and mozsync_mysql_user is defined
+                  and mozsync_mysql_pass is defined
+                  and mozsync_mysql_host is defined
+                  and mozsync_mysql_db is defined)
+
+- name:         install prerequisite packages
+  action:
+    module:     apt
+    name:       '{{ item }}'
+    state:      present
+  with_items:   MOZSYNC_PACKAGES[ansible_pkg_mgr]
+  when:         ansible_pkg_mgr == 'apt'
+

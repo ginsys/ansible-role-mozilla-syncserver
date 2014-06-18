@@ -1,0 +1,13 @@
+---
+- name:         configure upstart script
+  template:
+    src:        mozilla-syncserver.conf
+    dest:       /etc/init/mozilla-syncserver.conf
+  notify:
+                - restart_mozsync
+
+- name:         enable upstart script
+  service:
+    name:       mozilla-syncserver
+    enabled:    yes
+

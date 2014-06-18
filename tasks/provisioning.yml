@@ -1,0 +1,29 @@
+---
+- name:         provision user
+  user:
+    createhome:         yes
+    name:               '{{ mozsync_user }}'
+    home:               '{{ mozsync_user_home }}'
+    system:             yes
+    password:           '!disabled'
+    update_password:    always
+    state:              present
+
+- name:         provision directories
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  file:
+    path:               '{{ mozsync_user_home }}/{{ item }}'
+    state:              directory
+  with_items:
+                        - tarballs
+                        - syncserver
+
+- name:         download tarball
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  get_url:
+    url:                '{{ mozsync_tarball_url }}'
+    dest:               '{{ mozsync_user_home }}/tarballs'
+    validate_certs:     yes
+  register:     mozsync_tarball_file

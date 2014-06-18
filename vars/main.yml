@@ -3,7 +3,8 @@ MOZSYNC_SUPPORTED_VERSIONS:
                         - '1.5.0'
 MOZSYNC_SUPPORTED_PKGMGRS:
                         - 'apt'
-                        #- 'yum'  # need validation
+MOZSYNC_SUPPORTED_DISTRIBUTION_RELEASE:
+                        - 'trusty'
 
 MOZSYNC_PACKAGES:
     apt:
@@ -27,5 +28,5 @@ mozsync_use:
 
 mozsync_sqluri:
   sqlite:               '{{ mozsync_user_home }}/sqlite/syncserver.db'
-  mysql:                'pymysql://{{ mozsync_mysql_user }}:{{ mozsync_mysql_user }}@{{ mozsync_mysql_host }}/{{ mozsync_path }}'
+  mysql:                'pymysql://{{ mozsync_mysql_user }}:{{ mozsync_mysql_pass }}@{{ mozsync_mysql_host }}/{{ mozsync_mysql_db }}'
 

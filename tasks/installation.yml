@@ -1,0 +1,67 @@
+---
+- name:         extract tarball
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  unarchive:
+    copy:               no
+    creates:            '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/'
+    src:                '{{ mozsync_tarball_file.dest }}'
+    dest:               '{{ mozsync_user_home }}/syncserver/'
+  notify:
+                - restart_mozsync
+  register:     mozsync_tarball_extracted
+
+- name:         get untarred folder state
+  stat:
+    path:         '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/'
+  register:     mozsync_untarred_folder
+
+- name:         verify untarred folder state
+  assert:
+    that:
+                - mozsync_untarred_folder.stat.exists
+                - mozsync_untarred_folder.stat.isdir
+
+- name:         symlink current install
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  file:
+    src:            '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/'
+    dest:           '{{ mozsync_user_home }}/syncserver/syncserver-current'
+    state:          link
+  notify:
+                - restart_mozsync
+
+- name:         provision syncserver.ini
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  template:
+    src:        syncserver.ini
+    dest:       '{{ mozsync_user_home }}/syncserver/syncserver-{{ mozsync_version }}/syncserver.ini'
+    mode:       0640
+  notify:
+                - restart_mozsync
+
+- name:         install syncserver
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  command:      make build
+                chdir='{{ mozsync_user_home }}/syncserver/syncserver-current/'
+  when:         mozsync_tarball_extracted|changed
+  register:     mozsync_install_syncserver
+  changed_when: not 'Nothing to be done' in mozsync_install_syncserver.stdout
+
+- name:         install prerequisite packages for gunicorn
+  command:      local/bin/easy_install gunicorn
+                chdir='{{ mozsync_user_home }}/syncserver/syncserver-current/'
+                creates='{{ mozsync_user_home }}/syncserver/syncserver-current/local/bin/gunicorn'
+  when:         mozsync_webserver == 'gunicorn'
+
+- name:         test syncserver
+  sudo:         yes
+  sudo_user:    '{{ mozsync_user }}'
+  command:      make test
+                chdir='{{ mozsync_user_home }}/syncserver/syncserver-current/'
+  when:         not mozsync_install_syncserver|skipped
+  changed_when: false
+
